@@ -11,8 +11,9 @@
 
 #include "MySensor.h"
 #include "utility/LowPower.h"
-#include "utility/RF24.h"
-#include "utility/RF24_config.h"
+#include <RH_RF69.h>
+#include <RHMesh.h>
+
 
 
 // Inline function and macros
@@ -28,20 +29,17 @@ inline MyMessage& build (MyMessage &msg, uint8_t sender, uint8_t destination, ui
 }
 
 
-MySensor::MySensor(uint8_t _cepin, uint8_t _cspin) : RF24(_cepin, _cspin) {
+MySensor::MySensor(uint8_t _intpin, uint8_t _cspin) {
+	driver=new RH_RF69(_intpin,_cspin);
 }
 
 
-void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, boolean _repeaterMode, uint8_t _parentNodeId, rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate) {
+void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, uint8_t _parentNodeId, uint8_t paLevel, uint16_t channel, RH_RF69::ModemConfigChoice modemChoice) {
 	Serial.begin(BAUD_RATE);
 	isGateway = false;
-	repeaterMode = _repeaterMode;
 	msgCallback = _msgCallback;
 
-	if (repeaterMode) {
-		setupRepeaterMode();
-	}
-	setupRadio(paLevel, channel, dataRate);
+	setupRadio(paLevel, channel, modemChoice);
 
 	// Read settings from EEPROM
 	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
@@ -52,73 +50,42 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, b
 		cc.isMetric = 0x01;
 	}
 
-	if (_parentNodeId != AUTO) {
-		nc.parentNodeId = _parentNodeId;
-		autoFindParent = false;
-	} else {
-		autoFindParent = true;
-	}
-
 	if (_nodeId != AUTO) {
 		// Set static id
 		nc.nodeId = _nodeId;
 	}
+	manager.setThisAddress(nc.nodeId);
 
-	// If no parent was found in eeprom. Try to find one.
-	if (autoFindParent && nc.parentNodeId == 0xff) {
-		findParentNode();
-	}
 
 	// Try to fetch node-id from gateway
 	if (nc.nodeId == AUTO) {
 		requestNodeId();
 	}
 
-	debug(PSTR("%s started, id %d\n"), repeaterMode?"repeater":"sensor", nc.nodeId);
+	debug(PSTR("%s started, id %d\n"), "sensor", nc.nodeId);
 
 	// Open reading pipe for messages directed to this node (set write pipe to same)
-	RF24::openReadingPipe(WRITE_PIPE, TO_ADDR(nc.nodeId));
-	RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
-
+	
 	// Send presentation for this radio node (attach
-	present(NODE_SENSOR_ID, repeaterMode? S_ARDUINO_REPEATER_NODE : S_ARDUINO_NODE);
+	present(NODE_SENSOR_ID, S_ARDUINO_NODE);
 
 	// Send a configuration exchange request to controller
 	// Node sends parent node. Controller answers with latest node configuration
 	// which is picked up in process()
-	sendRoute(build(msg, nc.nodeId, GATEWAY_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_CONFIG, false).set(nc.parentNodeId));
+	sendRoute(build(msg, nc.nodeId, GATEWAY_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_CONFIG, false).set(""));
 
 	// Wait configuration reply.
 	waitForReply();
 }
 
-void MySensor::setupRadio(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate) {
+void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice) {
 	failedTransmissions = 0;
 
 	// Start up the radio library
-	RF24::begin();
-
-	if (!RF24::isPVariant()) {
-		debug(PSTR("check wires\n"));
-		while(1);
-	}
-	RF24::setAutoAck(1);
-	RF24::setAutoAck(BROADCAST_PIPE,false); // Turn off auto ack for broadcast
-	RF24::enableAckPayload();
-	RF24::setChannel(channel);
-	RF24::setPALevel(paLevel);
-	RF24::setDataRate(dataRate);
-	RF24::setRetries(5,15);
-	RF24::setCRCLength(RF24_CRC_16);
-	RF24::enableDynamicPayloads();
-
-	// All nodes listen to broadcast pipe (for FIND_PARENT_RESPONSE messages)
-	RF24::openReadingPipe(BROADCAST_PIPE, TO_ADDR(BROADCAST_ADDRESS));
-}
-
-void MySensor::setupRepeaterMode(){
-	childNodeTable = new uint8_t[256];
-	eeprom_read_block((void*)childNodeTable, (void*)EEPROM_ROUTES_ADDRESS, 256);
+///	driver.init(); Is initialised when initialising the manager..
+	driver.setFrequency(frequency);
+	driver.setTxPower(paLevel);
+	driver.setModemConfig(modemChoice);
 }
 
 
@@ -132,7 +99,7 @@ ControllerConfig MySensor::getConfig() {
 
 void MySensor::requestNodeId() {
 	debug(PSTR("req node id\n"));
-	RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
+//	RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
 	sendRoute(build(msg, nc.nodeId, GATEWAY_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_ID_REQUEST, false).set(""));
 	waitForReply();
 }
@@ -171,32 +138,13 @@ boolean MySensor::sendRoute(MyMessage &message) {
 		return false;
 	}
 
-	if (repeaterMode) {
-		uint8_t dest = message.destination;
-		uint8_t route = getChildRoute(dest);
-		if (route>GATEWAY_ADDRESS && route<BROADCAST_ADDRESS && dest != GATEWAY_ADDRESS) {
-			// --- debug(PSTR("route %d.\n"), route);
-			// Message destination is not gateway and is in routing table for this node.
-			// Send it downstream
-			return sendWrite(route, message);
-		} else if (isInternal && message.type == I_ID_RESPONSE && dest==BROADCAST_ADDRESS) {
-			// Node has not yet received any id. We need to send it
-			// by doing a broadcast sending,
-			return sendWrite(BROADCAST_ADDRESS, message, true);
-		}
-	}
-
 	if (!isGateway) {
 		// --- debug(PSTR("route parent\n"));
 		// Should be routed back to gateway.
 		bool ok = sendWrite(nc.parentNodeId, message);
 
 		if (!ok) {
-			// Failure when sending to parent node. The parent node might be down and we
-			// need to find another route to gateway.
-			if (autoFindParent && failedTransmissions > SEARCH_FAILURES) {
-				findParentNode();
-			}
+			// Failure when sending.  This means that the current is no route to the Gateway.  Retry in case some radios become online.
 			failedTransmissions++;
 		} else {
 			failedTransmissions = 0;
@@ -206,9 +154,8 @@ boolean MySensor::sendRoute(MyMessage &message) {
 	return false;
 }
 
-boolean MySensor::sendWrite(uint8_t next, MyMessage &message, bool broadcast) {
+boolean MySensor::sendWrite(MyMessage &message) {
 	uint8_t length = mGetLength(message);
-	message.last = nc.nodeId;
 	mSetVersion(message, PROTOCOL_VERSION);
 	// Make sure radio has powered up
 	RF24::powerUp();
@@ -259,20 +206,18 @@ void MySensor::requestTime(void (* _timeCallback)(unsigned long)) {
 
 
 boolean MySensor::process() {
-	uint8_t pipe;
-	boolean available = RF24::available(&pipe);
+	boolean available = manager.available();
 
-	if (!available || pipe>6)
+	if (!available)
 		return false;
-
-	uint8_t len = RF24::getDynamicPayloadSize();
-	RF24::read(&msg, len);
-	RF24::writeAckPayload(pipe,&pipe, 1 );
-
-	// Add string termination, good if we later would want to print it.
-	msg.data[mGetLength(msg)] = '\0';
-	debug(PSTR("read: %d-%d-%d s=%d,c=%d,t=%d,pt=%d,l=%d:%s\n"),
-				msg.sender, msg.last, msg.destination,  msg.sensor, mGetCommand(msg), msg.type, mGetPayloadType(msg), mGetLength(msg), msg.getString(convBuf));
+	
+	uint8_t len = sizeOf(msg);
+	uint8_t from;
+	if (manager.recvfromAck(&msg,  &len,  &from)) {
+		// Add string termination, good if we later would want to print it.
+		msg.data[mGetLength(msg)] = '\0';
+		debug(PSTR("read: %d s=%d,c=%d,t=%d,pt=%d,l=%d:%s\n"),
+				msg.sender, msg.sensor, mGetCommand(msg), msg.type, mGetPayloadType(msg), mGetLength(msg), msg.getString(convBuf));
 
 	if(!(mGetVersion(msg) == PROTOCOL_VERSION)) {
 		debug(PSTR("version mismatch\n"));
@@ -285,14 +230,7 @@ boolean MySensor::process() {
 	uint8_t last = msg.last;
 	uint8_t destination = msg.destination;
 
-	if (repeaterMode && command == C_INTERNAL && type == I_FIND_PARENT) {
-		// Relaying nodes should always answer ping messages
-		// Wait a random delay of 0-2 seconds to minimize collision
-		// between ping ack messages from other relaying nodes
-		delay(millis() & 0x3ff);
-		sendWrite(sender, build(msg, nc.nodeId, sender, NODE_SENSOR_ID, C_INTERNAL, I_FIND_PARENT_RESPONSE, false).set(nc.distance), true);
-		return false;
-	} else if (destination == nc.nodeId) {
+	if (destination == nc.nodeId) {
 		// Check if sender requests an ack back.
 		if (mGetRequestAck(msg)) {
 			// Copy message
@@ -303,28 +241,9 @@ boolean MySensor::process() {
 			ack.destination = msg.sender;
 			sendRoute(ack);
 		}
-
-		// This message is addressed to this node
-		if (repeaterMode && last != nc.parentNodeId) {
-			// Message is from one of the child nodes. Add it to routing table.
-			addChildRoute(sender, last);
-		}
-
+f
 		if (command == C_INTERNAL) {
-			if (type == I_FIND_PARENT_RESPONSE && !isGateway) {
-				// We've received a reply to a FIND_PARENT message. Check if the distance is
-				// shorter than we already have.
-				uint8_t distance = msg.getByte();
-				if (distance<nc.distance-1) {
-					// Found a neighbor closer to GW than previously found
-					nc.distance = distance + 1;
-					nc.parentNodeId = msg.sender;
-					eeprom_write_byte((uint8_t*)EEPROM_PARENT_NODE_ID_ADDRESS, nc.parentNodeId);
-					eeprom_write_byte((uint8_t*)EEPROM_DISTANCE_ADDRESS, nc.distance);
-					debug(PSTR("new parent=%d, d=%d\n"), nc.parentNodeId, nc.distance);
-				}
-				return false;
-			} else if (sender == GATEWAY_ADDRESS) {
+			if (sender == GATEWAY_ADDRESS) {
 				bool isMetric;
 
 				switch (type) {
@@ -341,7 +260,8 @@ boolean MySensor::process() {
 							debug(PSTR("full\n"));
 							while (1); // Wait here. Nothing else we can do...
 						} else {
-							RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
+							manager.setThisAddress(nc.nodeId);
+							///RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
 							eeprom_write_byte((uint8_t*)EEPROM_NODE_ID_ADDRESS, nc.nodeId);
 						}
 						debug(PSTR("id=%d\n"), nc.nodeId);
@@ -355,16 +275,6 @@ boolean MySensor::process() {
 						cc.isMetric = isMetric;
 						eeprom_write_byte((uint8_t*)EEPROM_CONTROLLER_CONFIG_ADDRESS, isMetric);
 						//eeprom_write_block((const void*)&cc, (uint8_t*)EEPROM_CONTROLLER_CONFIG_ADDRESS, sizeof(ControllerConfig));
-					}
-					break;
-				case I_CHILDREN:
-					if (repeaterMode && msg.getByte() == 'C') {
-						// Clears child relay data for this node
-						debug(PSTR("rd=clear\n"));
-						for (uint8_t i=0;i< sizeof(childNodeTable); i++) {
-							removeChildRoute(i);
-						}
-						sendRoute(build(msg, nc.nodeId, GATEWAY_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_CHILDREN,false).set(""));
 					}
 					break;
 				case I_TIME:
@@ -382,40 +292,6 @@ boolean MySensor::process() {
 		}
 		// Return true if message was addressed for this node...
 		return true;
-	} else if (repeaterMode && pipe == CURRENT_NODE_PIPE) {
-		// We should try to relay this message to another node
-
-		uint8_t route = getChildRoute(msg.destination);
-		if (route>0 && route<255) {
-			// This message should be forwarded to a child node. If we send message
-			// to this nodes pipe then all children will receive it because the are
-			// all listening to this nodes pipe.
-			//
-			//    +----B
-			//  -A
-			//    +----C------D
-			//
-			//  We're node C, Message comes from A and has destination D
-			//
-			// lookup route in table and send message there
-			sendWrite(route, msg);
-		} else  {
-			// A message comes from a child node and we have no
-			// route for it.
-			//
-			//    +----B
-			//  -A
-			//    +----C------D    <-- Message comes from D
-			//
-			//     We're node C
-			//
-			// Message should be passed to node A (this nodes relay)
-
-			// This message should be routed back towards sensor net gateway
-			sendWrite(nc.parentNodeId, msg);
-			// Add this child to our "routing table" if it not already exist
-			addChildRoute(sender, last);
-		}
 	}
 	return false;
 }
@@ -433,25 +309,6 @@ void MySensor::saveState(uint8_t pos, uint8_t value) {
 }
 uint8_t MySensor::loadState(uint8_t pos) {
 	return eeprom_read_byte((uint8_t*)(EEPROM_LOCAL_CONFIG_ADDRESS+pos));
-}
-
-
-void MySensor::addChildRoute(uint8_t childId, uint8_t route) {
-	if (childNodeTable[childId] != route) {
-		childNodeTable[childId] = route;
-		eeprom_write_byte((uint8_t*)EEPROM_ROUTES_ADDRESS+childId, route);
-	}
-}
-
-void MySensor::removeChildRoute(uint8_t childId) {
-	if (childNodeTable[childId] != 0xff) {
-		childNodeTable[childId] = 0xff;
-		eeprom_write_byte((uint8_t*)EEPROM_ROUTES_ADDRESS+childId, 0xff);
-	}
-}
-
-uint8_t MySensor::getChildRoute(uint8_t childId) {
-	return childNodeTable[childId];
 }
 
 
@@ -492,7 +349,7 @@ void MySensor::internalSleep(unsigned long ms) {
 void MySensor::sleep(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	Serial.flush();
-	RF24::powerDown();
+	driver.setModeIdle();
 	continueTimer = true;
 	internalSleep(ms);
 }
@@ -501,7 +358,7 @@ bool MySensor::sleep(int interrupt, int mode, unsigned long  ms) {
 	// Let serial prints finish (debug, log etc)
 	bool pinTriggeredWakeup = true;
 	Serial.flush();
-	RF24::powerDown();
+	driver.setModeIdle();
 	attachInterrupt(interrupt, wakeUp, mode); //Interrupt on pin 3 for any change in solar power
 	if (ms>0) {
 		continueTimer = true;

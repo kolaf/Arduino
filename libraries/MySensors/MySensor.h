@@ -24,9 +24,9 @@
 #ifdef __cplusplus
 #include <Arduino.h>
 #include <SPI.h>
+#include <RH_RF69.h>
+#include <RHMesh.h>
 #include "utility/LowPower.h"
-#include "utility/RF24.h"
-#include "utility/RF24_config.h"
 #endif
 
 #ifdef DEBUG
@@ -80,7 +80,7 @@ struct ControllerConfig {
 };
 
 #ifdef __cplusplus
-class MySensor : public RF24
+class MySensor
 {
   public:
 	/**
@@ -91,7 +91,7 @@ class MySensor : public RF24
 	* @param _cepin The pin attached to RF24 Chip Enable on the RF module (defualt 9)
 	* @param _cspin The pin attached to RF24 Chip Select (default 10)
 	*/
-	MySensor(uint8_t _cepin=9, uint8_t _cspin=10);
+	MySensor(uint8_t _intpin=2, uint8_t _cspin=10);
 
 	/**
 	* Begin operation of the MySensors library
@@ -106,7 +106,7 @@ class MySensor : public RF24
 	* @param dataRate Radio transmission speed. Default RF24_1MBPS
 	*/
 
-	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, boolean repeaterMode=false, uint8_t parentNodeId=AUTO, rf24_pa_dbm_e paLevel=RF24_PA_LEVEL, uint8_t channel=RF24_CHANNEL, rf24_datarate_e dataRate=RF24_DATARATE);
+	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, boolean repeaterMode=false, uint8_t parentNodeId=AUTO, uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250);
 
 	/**
 	 * Return the nodes nodeId.
@@ -219,7 +219,7 @@ class MySensor : public RF24
 	 * @param ms Number of milliseconds to sleep or 0 to sleep forever
 	 * @return true if wake up was triggered by pin change and false means timer woke it up.
 	 */
-	bool sleep(int interrupt, int mode, unsigned long ms=0);
+	 bool sleep(int interrupt, int mode, unsigned long ms=0);
 
 	/**
 	 * getInternalTemp
@@ -242,14 +242,14 @@ class MySensor : public RF24
   protected:
 	NodeConfig nc; // Essential settings for node to work
 	ControllerConfig cc; // Configuration coming from controller
-	bool repeaterMode;
+	RH_RF69 *driver;
+	RHMesh *manager;
 	bool autoFindParent;
 	bool isGateway;
 	MyMessage msg;  // Buffer for incoming messages.
 	MyMessage ack;  // Buffer for ack messages.
 
-	void setupRepeaterMode();
-	void setupRadio(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate);
+	void setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice);
 	boolean sendRoute(MyMessage &message);
 	boolean sendWrite(uint8_t dest, MyMessage &message, bool broadcast=false);
 
@@ -264,11 +264,6 @@ class MySensor : public RF24
 
     void waitForReply();
     void requestNodeId();
-	void findParentNode();
-	uint8_t crc8Message(MyMessage &message);
-	uint8_t getChildRoute(uint8_t childId);
-	void addChildRoute(uint8_t childId, uint8_t route);
-	void removeChildRoute(uint8_t childId);
 	void internalSleep(unsigned long ms);
 };
 #endif
