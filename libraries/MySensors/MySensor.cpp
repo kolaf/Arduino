@@ -54,7 +54,7 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 		// Set static id
 		nc.nodeId = _nodeId;
 	}
-	manager.setThisAddress(nc.nodeId);
+	manager->setThisAddress(nc.nodeId);
 
 
 	// Try to fetch node-id from gateway
@@ -83,9 +83,9 @@ void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemCon
 
 	// Start up the radio library
 ///	driver.init(); Is initialised when initialising the manager..
-	driver.setFrequency(frequency);
-	driver.setTxPower(paLevel);
-	driver.setModemConfig(modemChoice);
+	driver->setFrequency(frequency);
+	driver->setTxPower(paLevel);
+	driver->setModemConfig(modemChoice);
 }
 
 
@@ -105,19 +105,6 @@ void MySensor::requestNodeId() {
 }
 
 
-void MySensor::findParentNode() {
-	failedTransmissions = 0;
-
-	// Set distance to max
-	nc.distance = 255;
-
-	// Send ping message to BROADCAST_ADDRESS (to which all relaying nodes and gateway listens and should reply to)
-	build(msg, nc.nodeId, BROADCAST_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_FIND_PARENT, false).set("");
-	sendWrite(BROADCAST_ADDRESS, msg, true);
-
-	// Wait for ping response.
-	waitForReply();
-}
 
 void MySensor::waitForReply() {
 	unsigned long enter = millis();
@@ -141,7 +128,7 @@ boolean MySensor::sendRoute(MyMessage &message) {
 	if (!isGateway) {
 		// --- debug(PSTR("route parent\n"));
 		// Should be routed back to gateway.
-		bool ok = sendWrite(nc.parentNodeId, message);
+		bool ok = sendWrite(message);
 
 		if (!ok) {
 			// Failure when sending.  This means that the current is no route to the Gateway.  Retry in case some radios become online.
@@ -157,7 +144,7 @@ boolean MySensor::sendRoute(MyMessage &message) {
 boolean MySensor::sendWrite(MyMessage &message) {
 	uint8_t length = mGetLength(message);
 	mSetVersion(message, PROTOCOL_VERSION);
-	uint8_t status = manager.sendtoWait(&message, sizeof(&message), message.sender);
+	uint8_t status = manager->sendtoWait((uint8_t *)&message, sizeof(&message), message.destination);
 	debug(PSTR("send: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%s:%s\n"),
 			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status, message.getString(convBuf));
 
@@ -205,14 +192,14 @@ void MySensor::requestTime(void (* _timeCallback)(unsigned long)) {
 
 
 boolean MySensor::process() {
-	boolean available = manager.available();
+	boolean available = manager->available();
 
 	if (!available)
 		return false;
 	
-	uint8_t len = sizeOf(msg);
+	uint8_t len = sizeof(msg);
 	uint8_t from;
-	if (manager.recvfromAck(&msg,  &len,  &from)) {
+	if (manager->recvfromAck((uint8_t* &msg,  &len,  &from)) {
 		// Add string termination, good if we later would want to print it.
 		msg.data[mGetLength(msg)] = '\0';
 		debug(PSTR("read: %d s=%d,c=%d,t=%d,pt=%d,l=%d:%s\n"),
@@ -259,7 +246,7 @@ f
 							debug(PSTR("full\n"));
 							while (1); // Wait here. Nothing else we can do...
 						} else {
-							manager.setThisAddress(nc.nodeId);
+							manager->setThisAddress(nc.nodeId);
 							///RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
 							eeprom_write_byte((uint8_t*)EEPROM_NODE_ID_ADDRESS, nc.nodeId);
 						}
@@ -348,7 +335,7 @@ void MySensor::internalSleep(unsigned long ms) {
 void MySensor::sleep(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	Serial.flush();
-	driver.setModeIdle();
+	driver->setModeIdle();
 	continueTimer = true;
 	internalSleep(ms);
 }
@@ -357,7 +344,7 @@ bool MySensor::sleep(int interrupt, int mode, unsigned long  ms) {
 	// Let serial prints finish (debug, log etc)
 	bool pinTriggeredWakeup = true;
 	Serial.flush();
-	driver.setModeIdle();
+	driver->setModeIdle();
 	attachInterrupt(interrupt, wakeUp, mode); //Interrupt on pin 3 for any change in solar power
 	if (ms>0) {
 		continueTimer = true;

@@ -106,7 +106,7 @@ class MySensor
 	* @param dataRate Radio transmission speed. Default RF24_1MBPS
 	*/
 
-	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, boolean repeaterMode=false, uint8_t parentNodeId=AUTO, uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250);
+	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, uint8_t parentNodeId=AUTO, uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250);
 
 	/**
 	 * Return the nodes nodeId.
@@ -251,7 +251,7 @@ class MySensor
 
 	void setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice);
 	boolean sendRoute(MyMessage &message);
-	boolean sendWrite(uint8_t dest, MyMessage &message, bool broadcast=false);
+	boolean sendWrite(MyMessage &message);
 
   private:
 #ifdef DEBUG
