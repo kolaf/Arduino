@@ -59,7 +59,8 @@ public MySensor {
 public:
 	MyMQTT(uint8_t _cepin=9, uint8_t _cspin=10);
 
-	void begin(rf24_pa_dbm_e paLevel=RF24_PA_LEVEL_GW, uint8_t channel=RF24_CHANNEL, rf24_datarate_e dataRate=RF24_DATARATE, void (*dataCallback)(char *, int *)=NULL);
+void begin(uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250, void (*dataCallback)(char *)=NULL);
+
 	void processRadioMessage();
 	void processMQTTMessage(char *inputString, int inputPos);
 	

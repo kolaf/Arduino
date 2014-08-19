@@ -24,7 +24,7 @@
 #include <SPI.h>  
 #include <MsTimer2.h>
 #include <PinChangeInt.h>
-#include <MyGateway.h>  
+#include <MyGateway.h>
 #include <stdarg.h>
 
 #define INCLUSION_MODE_TIME 1 // Number of minutes inclusion mode is enabled

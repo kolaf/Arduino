@@ -66,7 +66,7 @@ void MyGateway::begin(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigC
 	}
 
 	// Start up the radio library
-	setupRadio(paLevel, frequency, dataRate);	
+	setupRadio(paLevel, frequency, modemChoice);	
 
 	// Send startup log message on serial
 	serial(PSTR("0;0;%d;%d;Arduino startup complete.\n"),  C_INTERNAL, I_LOG_MESSAGE);
