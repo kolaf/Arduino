@@ -34,12 +34,12 @@ MySensor::MySensor(uint8_t _intpin, uint8_t _cspin) {
 }
 
 
-void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, uint8_t _parentNodeId, uint8_t paLevel, uint16_t channel, RH_RF69::ModemConfigChoice modemChoice) {
+void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, uint8_t _parentNodeId, uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice) {
 	Serial.begin(BAUD_RATE);
 	isGateway = false;
 	msgCallback = _msgCallback;
 
-	setupRadio(paLevel, channel, modemChoice);
+	setupRadio(paLevel, frequency, modemChoice);
 
 	// Read settings from EEPROM
 	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
@@ -157,17 +157,16 @@ boolean MySensor::sendRoute(MyMessage &message) {
 boolean MySensor::sendWrite(MyMessage &message) {
 	uint8_t length = mGetLength(message);
 	mSetVersion(message, PROTOCOL_VERSION);
-	// Make sure radio has powered up
-	RF24::powerUp();
-	RF24::stopListening();
-	RF24::openWritingPipe(TO_ADDR(next));
-	bool ok = RF24::write(&message, min(MAX_MESSAGE_LENGTH, HEADER_SIZE + length), broadcast);
-	RF24::startListening();
+	uint8_t status = manager.sendtoWait(&message, sizeof(&message), message.sender);
+	debug(PSTR("send: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%s:%s\n"),
+			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status, message.getString(convBuf));
 
-	debug(PSTR("send: %d-%d-%d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%s:%s\n"),
-			message.sender,message.last, next, message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), ok?"ok":"fail", message.getString(convBuf));
+	if(status != RH_ROUTER_ERROR_NONE){
+		return false;
+	}
 
-	return ok;
+	
+	return true;
 }
 
 

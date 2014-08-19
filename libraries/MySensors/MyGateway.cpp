@@ -26,11 +26,9 @@ MyGateway::MyGateway(uint8_t _cepin, uint8_t _cspin, uint8_t _inclusion_time, ui
 	pinEr = _er;
 }
 
-void MyGateway::begin(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate, void (*inDataCallback)(char *)) {
+void MyGateway::begin(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice, void (*inDataCallback)(char *)) {
 	Serial.begin(BAUD_RATE);
-	repeaterMode = true;
 	isGateway = true;
-	setupRepeaterMode();
 
 	if (inDataCallback != NULL) {
 		useWriteCallback = true;
@@ -68,10 +66,7 @@ void MyGateway::begin(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e da
 	}
 
 	// Start up the radio library
-	setupRadio(paLevel, channel, dataRate);
-	RF24::openReadingPipe(WRITE_PIPE, BASE_RADIO_ID);
-	RF24::openReadingPipe(CURRENT_NODE_PIPE, BASE_RADIO_ID);
-	RF24::startListening();
+	setupRadio(paLevel, frequency, dataRate);	
 
 	// Send startup log message on serial
 	serial(PSTR("0;0;%d;%d;Arduino startup complete.\n"),  C_INTERNAL, I_LOG_MESSAGE);

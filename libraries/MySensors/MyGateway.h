@@ -27,7 +27,7 @@ class MyGateway : public MySensor
 		* If you don't use status leds and/or inclusion mode button on your arduino gateway
 		* you can disable this functionality by calling the 2 argument constructor.
 		*
-		* @param _cepin The pin attached to RF24 Chip Enable on the RF module (default 9)
+		* @param _intpin The pin attached to mmodem interrupt (default 2)
 		* @param _cspin The pin attached to RF24 Chip Select (defualt 10)
 		* @param _inclusion_time Time of inclusion mode (in minutes, default 1)
 		* @param _inclusion_pin Digital pin that triggers inclusion mode
@@ -36,11 +36,11 @@ class MyGateway : public MySensor
 		* @param _er Digital pin for error led
 		*
 		*/
-		MyGateway(uint8_t _cepin=9, uint8_t _cspin=10, uint8_t _inclusion_time = 1);
-		MyGateway(uint8_t _cepin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er);
+		MyGateway(uint8_t _intpin=2, uint8_t _cspin=10, uint8_t _inclusion_time = 1);
+		MyGateway(uint8_t _intpin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er);
 
 		/* Use this and pass a function that should be called when you want to process commands that arrive from radio network */
-		void begin(rf24_pa_dbm_e paLevel=RF24_PA_LEVEL_GW, uint8_t channel=RF24_CHANNEL, rf24_datarate_e dataRate=RF24_DATARATE, void (*dataCallback)(char *)=NULL);
+		void begin(uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250, void (*dataCallback)(char *)=NULL);
 
 		void processRadioMessage();
 	    void parseAndSend(char *inputString);
