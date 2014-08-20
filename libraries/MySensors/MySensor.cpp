@@ -30,7 +30,8 @@ inline MyMessage& build (MyMessage &msg, uint8_t sender, uint8_t destination, ui
 
 
 MySensor::MySensor(uint8_t _intpin, uint8_t _cspin) {
-	driver=new RH_RF69(_intpin,_cspin);
+	intpin=_intpin;
+	cspin=_cspin;
 }
 
 
@@ -39,7 +40,7 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 	isGateway = false;
 	msgCallback = _msgCallback;
 
-	setupRadio(paLevel, frequency, modemChoice);
+
 
 	// Read settings from EEPROM
 	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
@@ -49,7 +50,7 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 		// Eeprom empty, set default to metric
 		cc.isMetric = 0x01;
 	}
-
+	setupRadio(paLevel, frequency, modemChoice);
 	if (_nodeId != AUTO) {
 		// Set static id
 		nc.nodeId = _nodeId;
@@ -80,12 +81,16 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 
 void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice) {
 	failedTransmissions = 0;
-
+	
 	// Start up the radio library
+	driver=new RH_RF69();//ttasks sensorintpin,cspin);
+	manager=new RHMesh(*driver, nc.nodeId);
+	if (!manager->init())
+		Serial.println("init failed");
 ///	driver.init(); Is initialised when initialising the manager..
 	driver->setFrequency(frequency);
 	driver->setTxPower(paLevel);
-	driver->setModemConfig(modemChoice);
+///	driver->setModemConfig(modemChoice);
 }
 
 
@@ -144,10 +149,12 @@ boolean MySensor::sendRoute(MyMessage &message) {
 boolean MySensor::sendWrite(MyMessage &message) {
 	uint8_t length = mGetLength(message);
 	mSetVersion(message, PROTOCOL_VERSION);
-	uint8_t status = manager->sendtoWait((uint8_t *)&message, sizeof(&message), message.destination);
-	debug(PSTR("send: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%s:%s\n"),
-			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status, message.getString(convBuf));
-
+	uint8_t status = 9;
+	debug(PSTR("send: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%d:%s\n"),
+			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status? "Okay": "failed", message.getString(convBuf));
+	status = manager->sendtoWait((uint8_t*) &message, sizeof(message), message.destination);
+	debug(PSTR("sent: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%d:%s\n"),
+			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status? "Okay": "failed", message.getString(convBuf));
 	if(status != RH_ROUTER_ERROR_NONE){
 		return false;
 	}
@@ -194,12 +201,13 @@ void MySensor::requestTime(void (* _timeCallback)(unsigned long)) {
 boolean MySensor::process() {
 	boolean available = manager->available();
 
-	if (!available)
-		return false;
+	//if (!available)
+	///	return false;
 	
 	uint8_t len = sizeof(msg);
 	uint8_t from;
 	if (manager->recvfromAck((uint8_t *) &msg,  &len,  &from)) {
+		debug(PSTR("Available"));
 		// Add string termination, good if we later would want to print it.
 		msg.data[mGetLength(msg)] = '\0';
 		debug(PSTR("read: %d s=%d,c=%d,t=%d,pt=%d,l=%d:%s\n"),

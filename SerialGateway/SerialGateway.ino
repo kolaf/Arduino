@@ -35,7 +35,7 @@
 //Gateway gw;
 
 // To start gateway with include button and led blinking functionality enabled use this instead!
-MyGateway gw(9, 10, INCLUSION_MODE_TIME, INCLUSION_MODE_PIN,  6, 5, 4);
+MyGateway gw(2, 10, INCLUSION_MODE_TIME, INCLUSION_MODE_PIN,  6, 5, 4);
 
 
 char inputString[MAX_RECEIVE_LENGTH] = "";    // A string to hold incoming commands from serial/ethernet interface

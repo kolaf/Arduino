@@ -106,7 +106,7 @@ class MySensor
 	* @param dataRate Radio transmission speed. Default RF24_1MBPS
 	*/
 
-	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, uint8_t parentNodeId=AUTO, uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250);
+	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, uint8_t parentNodeId=AUTO, uint8_t paLevel=14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250);
 
 	/**
 	 * Return the nodes nodeId.
@@ -257,6 +257,8 @@ class MySensor
 #ifdef DEBUG
 	char convBuf[MAX_PAYLOAD];
 #endif
+	uint8_t intpin;
+	uint8_t cspin;
 	uint8_t failedTransmissions;
 	uint8_t *childNodeTable; // In memory buffer for routing information to other nodes. also stored in EEPROM
     void (*timeCallback)(unsigned long); // Callback for requested time messages
