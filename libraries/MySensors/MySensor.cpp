@@ -199,12 +199,12 @@ boolean MySensor::process() {
 	
 	uint8_t len = sizeof(msg);
 	uint8_t from;
-	if (manager->recvfromAck((uint8_t* &msg,  &len,  &from)) {
+	if (manager->recvfromAck((uint8_t *) &msg,  &len,  &from)) {
 		// Add string termination, good if we later would want to print it.
 		msg.data[mGetLength(msg)] = '\0';
 		debug(PSTR("read: %d s=%d,c=%d,t=%d,pt=%d,l=%d:%s\n"),
 				msg.sender, msg.sensor, mGetCommand(msg), msg.type, mGetPayloadType(msg), mGetLength(msg), msg.getString(convBuf));
-
+	
 	if(!(mGetVersion(msg) == PROTOCOL_VERSION)) {
 		debug(PSTR("version mismatch\n"));
 		return false;
@@ -227,7 +227,7 @@ boolean MySensor::process() {
 			ack.destination = msg.sender;
 			sendRoute(ack);
 		}
-f
+
 		if (command == C_INTERNAL) {
 			if (sender == GATEWAY_ADDRESS) {
 				bool isMetric;
@@ -278,6 +278,7 @@ f
 		}
 		// Return true if message was addressed for this node...
 		return true;
+	}
 	}
 	return false;
 }
