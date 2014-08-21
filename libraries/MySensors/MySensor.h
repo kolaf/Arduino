@@ -24,7 +24,9 @@
 #ifdef __cplusplus
 #include <Arduino.h>
 #include <SPI.h>
+#ifdef DRH_RF69
 #include <RH_RF69.h>
+#endif
 #include <RHMesh.h>
 #include "utility/LowPower.h"
 #endif
@@ -68,9 +70,6 @@
 // Search for a new parent node after this many transmission failures
 #define SEARCH_FAILURES  5
 
-typedef enum {
-	DRH_RF22, DRH_RF24, DRH_RF69, DRH_RH95
-} RHDriver;
 
 struct NodeConfig
 {
@@ -95,7 +94,8 @@ class MySensor
 	* @param _cepin The pin attached to RF24 Chip Enable on the RF module (defualt 9)
 	* @param _cspin The pin attached to RF24 Chip Select (default 10)
 	*/
-	MySensor(uint8_t _intpin=2, uint8_t _cspin=10, RHDriver _radioDriver =DRH_RF69);
+
+	MySensor(uint8_t _intpin=2, uint8_t _cspin=10);
 
 	/**
 	* Begin operation of the MySensors library
@@ -246,7 +246,13 @@ class MySensor
   protected:
 	NodeConfig nc; // Essential settings for node to work
 	ControllerConfig cc; // Configuration coming from controller
+#ifdef DRH_RF69
 	RH_RF69 *driver = NULL;
+#elif defined DRH_RF24
+	RH_RF24 *driver = NULL;
+#else
+	RHGenericDriver *driver = NULL;
+#endif
 	RHMesh *manager = NULL;
 	bool autoFindParent;
 	bool isGateway;
@@ -263,7 +269,6 @@ class MySensor
 #endif
 	uint8_t intpin;
 	uint8_t cspin;
-	RHDriver radioDriver;
 	uint8_t failedTransmissions;
 	uint8_t *childNodeTable; // In memory buffer for routing information to other nodes. also stored in EEPROM
     void (*timeCallback)(unsigned long); // Callback for requested time messages

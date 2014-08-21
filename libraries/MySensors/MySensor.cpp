@@ -11,8 +11,6 @@
 
 #include "MySensor.h"
 #include "utility/LowPower.h"
-#include <RH_RF69.h>
-#include <RHMesh.h>
 
 
 
@@ -29,10 +27,9 @@ inline MyMessage& build (MyMessage &msg, uint8_t sender, uint8_t destination, ui
 }
 
 
-MySensor::MySensor(uint8_t _intpin, uint8_t _cspin, RHDriver _radioDriver) {
+MySensor::MySensor(uint8_t _intpin, uint8_t _cspin) {
 	intpin=_intpin;
 	cspin=_cspin;
-	radioDriver  =_radioDriver;
 }
 
 
@@ -84,9 +81,11 @@ void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemCon
 	failedTransmissions = 0;
 	
 	// Start up the radio library
-	if (radioDriver == DRH_RF69) {
-		driver=new RH_RF69(cspin,intpin);
-	}
+#ifdef DRH_RF69
+	driver=new RH_RF69(cspin,intpin);
+#elif defined DRH_RF24	
+	driver=new RH_RF24(cspin,intpin);
+#endif	
 	if (driver) {
 		manager=new RHMesh(*driver, nc.nodeId);
 		if (!manager->init())
@@ -95,11 +94,11 @@ void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemCon
 		debug(PSTR("No valid driver found\n"));
 	}
 ///	driver.init(); Is initialised when initialising the manager..
-	if (radioDriver == DRH_RF69) {
-		driver->setFrequency(frequency);
-		driver->setTxPower(paLevel);
-		driver->setModemConfig(modemChoice);
-	}
+#ifdef DRH_RF69
+	driver->setFrequency(frequency);
+	driver->setTxPower(paLevel);
+	driver->setModemConfig(modemChoice);
+#endif
 }
 
 
@@ -345,7 +344,9 @@ void MySensor::internalSleep(unsigned long ms) {
 void MySensor::sleep(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	Serial.flush();
+#ifdef DRH_RF69	
 	driver->setModeIdle();
+#endif
 	continueTimer = true;
 	internalSleep(ms);
 }
@@ -354,7 +355,9 @@ bool MySensor::sleep(int interrupt, int mode, unsigned long  ms) {
 	// Let serial prints finish (debug, log etc)
 	bool pinTriggeredWakeup = true;
 	Serial.flush();
+#ifdef DRH_RF69	
 	driver->setModeIdle();
+#endif
 	attachInterrupt(interrupt, wakeUp, mode); //Interrupt on pin 3 for any change in solar power
 	if (ms>0) {
 		continueTimer = true;
