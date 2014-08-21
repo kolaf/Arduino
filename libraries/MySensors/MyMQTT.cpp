@@ -75,8 +75,8 @@ PROGMEM const char *sType[] = {
 };
 
 
-MyMQTT::MyMQTT(uint8_t _cepin, uint8_t _cspin, uint8_t _rx, uint8_t _tx, uint8_t _er) :
-MySensor(_cepin, _cspin) {
+MyMQTT::MyMQTT(uint8_t _intpin, uint8_t _cspin, uint8_t _rx, uint8_t _tx, uint8_t _er) :
+MySensor(_intpin, _cspin) {
 	if (_rx != NULL) {
 		pinRx = _rx;
 		pinMode(pinRx, OUTPUT);
@@ -94,22 +94,17 @@ MySensor(_cepin, _cspin) {
 	}
 }
 
-void MyMQTT::begin(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate, void (*inDataCallback)(char *, int *)) {
+void MyMQTT::begin(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice, void (*inDataCallback)(char *, int *)) {
 	Serial.begin(BAUD_RATE);
-	repeaterMode = true;
 	isGateway = true;
 	MQTTClientConnected = false;
-	setupRepeaterMode();
 	dataCallback = inDataCallback;
 
 	nc.nodeId = 0;
 	nc.distance = 0;
 
 	// Start up the radio library
-	setupRadio(paLevel, channel, dataRate);
-	RF24::openReadingPipe(WRITE_PIPE, BASE_RADIO_ID);
-	RF24::openReadingPipe(CURRENT_NODE_PIPE, BASE_RADIO_ID);
-	RF24::startListening();
+	setupRadio(paLevel, frequency, modemChoice);
 	// Send startup log message on serial
 	//Serial.print(PSTR("Started\n"));//TODO: progmem gives error..? error: sType causes a section type conflict with __c
 	Serial.print("Started\n");//TODO: fix this...
