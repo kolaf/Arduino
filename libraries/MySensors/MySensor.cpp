@@ -29,9 +29,10 @@ inline MyMessage& build (MyMessage &msg, uint8_t sender, uint8_t destination, ui
 }
 
 
-MySensor::MySensor(uint8_t _intpin, uint8_t _cspin) {
+MySensor::MySensor(uint8_t _intpin, uint8_t _cspin, RHDriver _radioDriver) {
 	intpin=_intpin;
 	cspin=_cspin;
+	radioDriver  =_radioDriver;
 }
 
 
@@ -75,7 +76,7 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 	// which is picked up in process()
 	sendRoute(build(msg, nc.nodeId, GATEWAY_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_CONFIG, false).set(""));
 
-	// Wait configuration reply.
+	// Wait configuration reply.'s
 	waitForReply();
 }
 
@@ -83,14 +84,22 @@ void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemCon
 	failedTransmissions = 0;
 	
 	// Start up the radio library
-	driver=new RH_RF69();//ttasks sensorintpin,cspin);
-	manager=new RHMesh(*driver, nc.nodeId);
-	if (!manager->init())
-		debug(PSTR("Radio initialisation failed\n"));
+	if (radioDriver == DRH_RF69) {
+		driver=new RH_RF69(cspin,intpin);
+	}
+	if (driver) {
+		manager=new RHMesh(*driver, nc.nodeId);
+		if (!manager->init())
+			debug(PSTR("Radio initialisation failed\n"));
+	} else {
+		debug(PSTR("No valid driver found\n"));
+	}
 ///	driver.init(); Is initialised when initialising the manager..
-	driver->setFrequency(frequency);
-	driver->setTxPower(paLevel);
-///	driver->setModemConfig(modemChoice);
+	if (radioDriver == DRH_RF69) {
+		driver->setFrequency(frequency);
+		driver->setTxPower(paLevel);
+		driver->setModemConfig(modemChoice);
+	}
 }
 
 
@@ -263,8 +272,7 @@ boolean MySensor::process() {
 						eeprom_write_byte((uint8_t*)EEPROM_CONTROLLER_CONFIG_ADDRESS, isMetric);
 						//eeprom_write_block((const void*)&cc, (uint8_t*)EEPROM_CONTROLLER_CONFIG_ADDRESS, sizeof(ControllerConfig));
 					}
-					break;
-				case I_TIME:
+				} else if (type == I_TIME) {
 					if (timeCallback != NULL) {
 						// Deliver time to callback
 						timeCallback(msg.getULong());
