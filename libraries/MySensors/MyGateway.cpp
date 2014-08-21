@@ -172,6 +172,7 @@ void MyGateway::parseAndSend(char *commandBuffer) {
       setInclusionMode(atoi(value) == 1);
     }
   } else {
+	serial(PSTR("%d;%d;%d;%d;%d;%s\n"),destination, sensor,type, ack,  command, value);
     txBlink(1);
     msg.sender = GATEWAY_ADDRESS;
 	msg.destination = destination;
