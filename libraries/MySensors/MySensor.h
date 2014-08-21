@@ -1,5 +1,5 @@
 /*
- The MySensors library adds a new layer on top of the RF24 library.
+ The MySensors library adds a new layer on top of the NRF24 library.
  It handles radio network routing, relaying and ids.
 
  Created by Henrik Ekblad <henrik.ekblad@gmail.com>
@@ -26,6 +26,8 @@
 #include <SPI.h>
 #ifdef DRH_RF69
 #include <RH_RF69.h>
+#elif defined DRH_NRF24 
+#include <RH_NRF24.h>
 #endif
 #include <RHMesh.h>
 #include "utility/LowPower.h"
@@ -91,8 +93,8 @@ class MySensor
 	*
 	* Creates a new instance of Sensor class.
 	*
-	* @param _cepin The pin attached to RF24 Chip Enable on the RF module (defualt 9)
-	* @param _cspin The pin attached to RF24 Chip Select (default 10)
+	* @param _cepin The pin attached to NRF24 Chip Enable on the RF module (defualt 9)
+	* @param _cspin The pin attached to NRF24 Chip Select (default 10)
 	*/
 
 	MySensor(uint8_t _intpin=2, uint8_t _cspin=10);
@@ -105,12 +107,12 @@ class MySensor
 	* @param nodeId The unique id (1-254) for this sensor. Default is AUTO(255) which means sensor tries to fetch an id from controller.
 	* @param repeaterMode Activate repeater mode. This node will forward messages to other nodes in the radio network. Make sure to call process() regularly. Default in false
 	* @param parentNodeId Use this to force node to always communicate with a certain parent node. Default is AUTO which means node automatically tries to find a parent.
-	* @param paLevel Radio PA Level for this sensor. Default RF24_PA_MAX
+	* @param paLevel Radio PA Level for this sensor. Default NRF24_PA_MAX
 	* @param channel Radio channel. Default is channel 76
-	* @param dataRate Radio transmission speed. Default RF24_1MBPS
+	* @param dataRate Radio transmission speed. Default NRF24_1MBPS
 	*/
 
-	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, uint8_t parentNodeId=AUTO, uint8_t paLevel=14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250);
+	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, uint8_t parentNodeId=AUTO, uint8_t paLevel=14, uint16_t frequency=868);
 
 	/**
 	 * Return the nodes nodeId.
@@ -248,8 +250,8 @@ class MySensor
 	ControllerConfig cc; // Configuration coming from controller
 #ifdef DRH_RF69
 	RH_RF69 *driver = NULL;
-#elif defined DRH_RF24
-	RH_RF24 *driver = NULL;
+#elif defined DRH_NRF24
+	RH_NRF24 *driver = NULL;
 #else
 	RHGenericDriver *driver = NULL;
 #endif
@@ -259,7 +261,7 @@ class MySensor
 	MyMessage msg;  // Buffer for incoming messages.
 	MyMessage ack;  // Buffer for ack messages.
 
-	void setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice);
+	void setupRadio(uint8_t paLevel, uint16_t frequency);
 	boolean sendRoute(MyMessage &message);
 	boolean sendWrite(MyMessage &message);
 

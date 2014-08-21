@@ -26,7 +26,7 @@ MyGateway::MyGateway(uint8_t _cepin, uint8_t _cspin, uint8_t _inclusion_time, ui
 	pinEr = _er;
 }
 
-void MyGateway::begin(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice, void (*inDataCallback)(char *)) {
+void MyGateway::begin(uint8_t paLevel, uint16_t frequency, void (*inDataCallback)(char *)) {
 	Serial.begin(BAUD_RATE);
 	isGateway = true;
 
@@ -66,7 +66,7 @@ void MyGateway::begin(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigC
 	}
 
 	// Start up the radio library
-	setupRadio(paLevel, frequency, modemChoice);	
+	setupRadio(paLevel, frequency);	
 
 	// Send startup log message on serial
 	serial(PSTR("0;0;%d;0;%d;Arduino startup complete.\n"),  C_INTERNAL, I_LOG_MESSAGE);

@@ -33,7 +33,7 @@ MySensor::MySensor(uint8_t _intpin, uint8_t _cspin) {
 }
 
 
-void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, uint8_t _parentNodeId, uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice) {
+void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, uint8_t _parentNodeId, uint8_t paLevel, uint16_t frequency) {
 	Serial.begin(BAUD_RATE);
 	isGateway = false;
 	msgCallback = _msgCallback;
@@ -48,7 +48,7 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 		// Eeprom empty, set default to metric
 		cc.isMetric = 0x01;
 	}
-	setupRadio(paLevel, frequency, modemChoice);
+	setupRadio(paLevel, frequency);
 	if (_nodeId != AUTO) {
 		// Set static id
 		nc.nodeId = _nodeId;
@@ -77,14 +77,14 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 	waitForReply();
 }
 
-void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemConfigChoice modemChoice) {
+void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency) {
 	failedTransmissions = 0;
 	
 	// Start up the radio library
 #ifdef DRH_RF69
 	driver=new RH_RF69(cspin,intpin);
 #elif defined DRH_RF24	
-	driver=new RH_RF24(cspin,intpin);
+	driver=new RH_RF24(intpin,cspin);
 #endif	
 	if (driver) {
 		manager=new RHMesh(*driver, nc.nodeId);
@@ -97,7 +97,7 @@ void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemCon
 #ifdef DRH_RF69
 	driver->setFrequency(frequency);
 	driver->setTxPower(paLevel);
-	driver->setModemConfig(modemChoice);
+	//driver->setModemConfig(modemChoice);
 #endif
 }
 
