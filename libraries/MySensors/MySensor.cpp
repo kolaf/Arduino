@@ -86,7 +86,7 @@ void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency, RH_RF69::ModemCon
 	driver=new RH_RF69();//ttasks sensorintpin,cspin);
 	manager=new RHMesh(*driver, nc.nodeId);
 	if (!manager->init())
-		Serial.println("init failed");
+		debug(PSTR("Radio initialisation failed\n"));
 ///	driver.init(); Is initialised when initialising the manager..
 	driver->setFrequency(frequency);
 	driver->setTxPower(paLevel);
@@ -130,8 +130,7 @@ boolean MySensor::sendRoute(MyMessage &message) {
 		return false;
 	}
 
-	if (!isGateway) {
-		// --- debug(PSTR("route parent\n"));
+			// --- debug(PSTR("route parent\n"));
 		// Should be routed back to gateway.
 		bool ok = sendWrite(message);
 
@@ -142,7 +141,7 @@ boolean MySensor::sendRoute(MyMessage &message) {
 			failedTransmissions = 0;
 		}
 		return ok;
-	}
+	
 	return false;
 }
 
@@ -150,11 +149,9 @@ boolean MySensor::sendWrite(MyMessage &message) {
 	uint8_t length = mGetLength(message);
 	mSetVersion(message, PROTOCOL_VERSION);
 	uint8_t status = 9;
-	debug(PSTR("send: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%d:%s\n"),
-			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status? "Okay": "failed", message.getString(convBuf));
 	status = manager->sendtoWait((uint8_t*) &message, sizeof(message), message.destination);
 	debug(PSTR("sent: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%d:%s\n"),
-			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status? "Okay": "failed", message.getString(convBuf));
+			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status, message.getString(convBuf));
 	if(status != RH_ROUTER_ERROR_NONE){
 		return false;
 	}
@@ -207,7 +204,6 @@ boolean MySensor::process() {
 	uint8_t len = sizeof(msg);
 	uint8_t from;
 	if (manager->recvfromAck((uint8_t *) &msg,  &len,  &from)) {
-		debug(PSTR("Available"));
 		// Add string termination, good if we later would want to print it.
 		msg.data[mGetLength(msg)] = '\0';
 		debug(PSTR("read: %d s=%d,c=%d,t=%d,pt=%d,l=%d:%s\n"),
@@ -392,7 +388,7 @@ void MySensor::debugPrint(const char *fmt, ... ) {
 	Serial.print(fmtBuffer);
 	Serial.flush();
 
-	//Serial.write(freeRam());
+	///Serial.write(freeRam());
 }
 #endif
 
