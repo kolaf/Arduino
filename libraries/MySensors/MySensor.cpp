@@ -236,12 +236,10 @@ boolean MySensor::process() {
 			if (sender == GATEWAY_ADDRESS) {
 				bool isMetric;
 
-				switch (type) {
-				case I_REBOOT:
+				if (type == I_REBOOT) {
 					wdt_enable(WDTO_15MS);
 					for (;;);
-					break;
-				case I_ID_RESPONSE:
+				} else if (type == I_ID_RESPONSE) {
 					if (nc.nodeId == AUTO) {
 						nc.nodeId = msg.getByte();
 						// Write id to EEPROM
@@ -256,8 +254,7 @@ boolean MySensor::process() {
 						}
 						debug(PSTR("id=%d\n"), nc.nodeId);
 					}
-					break;
-				case I_CONFIG:
+				} else if (type == I_CONFIG) {
 					// Pick up configuration from controller (currently only metric/imperial)
 					// and store it in eeprom if changed
 					isMetric = msg.getByte() == 'M' ;

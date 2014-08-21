@@ -38,7 +38,8 @@ typedef enum {
 	V_RAINRATE, V_WIND, V_GUST, V_DIRECTION, V_UV, V_WEIGHT, V_DISTANCE,
 	V_IMPEDANCE, V_ARMED, V_TRIPPED, V_WATT, V_KWH, V_SCENE_ON, V_SCENE_OFF,
 	V_HEATER, V_HEATER_SW, V_LIGHT_LEVEL, V_VAR1, V_VAR2, V_VAR3, V_VAR4, V_VAR5,
-	V_UP, V_DOWN, V_STOP, V_IR_SEND, V_IR_RECEIVE, V_FLOW, V_VOLUME, V_LOCK_STATUS
+	V_UP, V_DOWN, V_STOP, V_IR_SEND, V_IR_RECEIVE, V_FLOW, V_VOLUME, V_LOCK_STATUS,
+	V_DUST_LEVEL
 } data;
 
 // Type of internal messages (for internal messages)
@@ -53,7 +54,8 @@ typedef enum {
 typedef enum {
 	S_DOOR, S_MOTION, S_SMOKE, S_LIGHT, S_DIMMER, S_COVER, S_TEMP, S_HUM, S_BARO, S_WIND,
 	S_RAIN, S_UV, S_WEIGHT, S_POWER, S_HEATER, S_DISTANCE, S_LIGHT_LEVEL, S_ARDUINO_NODE,
-	S_ARDUINO_REPEATER_NODE, S_LOCK, S_IR, S_WATER, S_AIR_QUALITY
+	S_ARDUINO_REPEATER_NODE, S_LOCK, S_IR, S_WATER, S_AIR_QUALITY, S_CUSTOM, S_DUST,
+	S_SCENE_CONTROLLER
 } sensor;
 
 // Type of data stream  (for streamed message)
@@ -170,6 +172,9 @@ struct
 {
 
 #endif
+	uint8_t last;            	 // 8 bit - Id of last node this message passed
+	uint8_t sender;          	 // 8 bit - Id of sender node (origin)
+	uint8_t destination;     	 // 8 bit - Id of destination node
 
 	uint8_t version_length;      // 3 bit - Protocol version
 			                     // 5 bit - Length of payload
@@ -177,9 +182,6 @@ struct
 	                             // 1 bit - Request an ack - Indicator that receiver should send an ack back.
 								 // 1 bit - Is ack messsage - Indicator that this is the actual ack message.
 	                             // 3 bit - Payload data type
-	uint8_t sender;          	 // 8 bit - Id of sender node
-	uint8_t last;            	 // 8 bit - Id of last node this message passed
-	uint8_t destination;     	 // 8 bit - Id of destination node
 	uint8_t type;            	 // 8 bit - Type varies depending on command
 	uint8_t sensor;          	 // 8 bit - Id of sensor that this message concerns.
 

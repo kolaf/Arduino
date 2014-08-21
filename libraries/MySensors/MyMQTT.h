@@ -21,7 +21,7 @@ version 2 as published by the Free Software Foundation.
 #define TCPDUMP						// Dump TCP packages.
 #endif
 
-#define MQTT_FIRST_SENSORID	20  		// If you want manually configured nodes below this value.
+#define MQTT_FIRST_SENSORID	20  		// If you want manually configured nodes below this value. 255 = Disable
 #define MQTT_LAST_SENSORID	254 		// 254 is max! 255 reserved.
 #define MQTT_BROKER_PREFIX	"MyMQTT"	// First prefix in MQTT tree, keep short!
 #define MQTT_SEND_SUBSCRIPTION 1		// Send empty payload (request) to node upon MQTT client subscribe request.
@@ -54,18 +54,17 @@ version 2 as published by the Free Software Foundation.
 #define MQTTQOS1        (1 << 1)
 #define MQTTQOS2        (2 << 1)
 
-class MyMQTT : 
+class MyMQTT :
 public MySensor {
 public:
-	MyMQTT(uint8_t _cepin=9, uint8_t _cspin=10);
-
-void begin(uint8_t paLevel=-14, uint16_t frequency=868, RH_RF69::ModemConfigChoice modemChoice= RH_RF69::GFSK_Rb250Fd250, void (*dataCallback)(char *)=NULL);
-
+	MyMQTT(uint8_t _cepin=5, uint8_t _cspin=6, uint8_t _rx=NULL, uint8_t _tx=NULL, uint8_t _er=NULL);
+	void begin(rf24_pa_dbm_e paLevel=RF24_PA_LEVEL_GW, uint8_t channel=RF24_CHANNEL, rf24_datarate_e dataRate=RF24_DATARATE, void (*dataCallback)(char *, int *)=NULL);
 	void processRadioMessage();
 	void processMQTTMessage(char *inputString, int inputPos);
-	
+	boolean isLedMode();
+	void ledTimersInterrupt();
 private:
-	bool MQTTClient;
+	bool MQTTClientConnected;
 	char buffer[MQTT_MAX_PACKET_SIZE];
 	int buffsize;
 	char convBuf[MAX_PAYLOAD*2+1];
@@ -73,9 +72,20 @@ private:
 	void (*dataCallback)(char *, int *);
 	void SendMQTT(MyMessage &msg);
 	char strncpysType_retL(char *str, char index, char start);
+
+	volatile uint8_t countRx;
+	volatile uint8_t countTx;
+	volatile uint8_t countErr;
+	uint8_t pinRx;
+	uint8_t pinTx;
+	uint8_t pinEr;
+	boolean ledMode;
+	void ledTimers();
+	void rxBlink(uint8_t cnt);
+	void txBlink(uint8_t cnt);
+	void errBlink(uint8_t cnt);
 };
 
 
 
 #endif
-
