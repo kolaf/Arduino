@@ -24,7 +24,7 @@ volatile uint8_t countErr;
 boolean inclusionMode; // Keeps track on inclusion mode
 
 
-MyGateway::MyGateway(uint8_t _cepin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er) : MySensor(_cepin, _cspin) {
+MyGateway::MyGateway(uint8_t _intpin,uint8_t _cepin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er) : MySensor(_intpin,_cepin, _cspin) {
 	pinInclusion = _inclusion_pin;
 	inclusionTime = _inclusion_time;
 	pinRx = _rx;
