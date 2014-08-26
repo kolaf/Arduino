@@ -97,7 +97,7 @@ class MySensor
 	* @param _cspin The pin attached to NRF24 Chip Select (default 10)
 	*/
 
-	MySensor(uint8_t _intpin=2, uint8_t _cspin=10);
+	MySensor(uint8_t _intpin=2, uint8_t _cepin=DEFAULT_CE_PIN, uint8_t _cspin=DEFAULT_CS_PIN);
 
 	/**
 	* Begin operation of the MySensors library
@@ -271,6 +271,7 @@ class MySensor
 #endif
 	uint8_t intpin;
 	uint8_t cspin;
+	uint8_t cepin;
 	uint8_t failedTransmissions;
 	uint8_t *childNodeTable; // In memory buffer for routing information to other nodes. also stored in EEPROM
     void (*timeCallback)(unsigned long); // Callback for requested time messages

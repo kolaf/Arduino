@@ -14,8 +14,8 @@
 
 #include "MySensor.h"
 
-#define MAX_RECEIVE_LENGTH 100 // Max buffersize needed for messages coming from vera
-#define MAX_SEND_LENGTH 120 // Max buffersize needed for messages coming from vera
+#define MAX_RECEIVE_LENGTH 100 // Max buffersize needed for messages coming from controller
+#define MAX_SEND_LENGTH 120 // Max buffersize needed for messages destined for controller
 
 class MyGateway : public MySensor
 {
@@ -36,43 +36,26 @@ class MyGateway : public MySensor
 		* @param _er Digital pin for error led
 		*
 		*/
-		MyGateway(uint8_t _intpin=2, uint8_t _cspin=10, uint8_t _inclusion_time = 1);
-		MyGateway(uint8_t _intpin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er);
+		MyGateway(uint8_t _intpin=2,uint8_t _cepin=DEFAULT_CE_PIN, uint8_t _cspin=DEFAULT_CS_PIN, uint8_t _inclusion_time = 1, uint8_t _inclusion_pin = 3, uint8_t _rx=6, uint8_t _tx=5, uint8_t _er=4);
 
 		/* Use this and pass a function that should be called when you want to process commands that arrive from radio network */
 		void begin(uint8_t paLevel=14, uint16_t frequency=868, void (*dataCallback)(char *)=NULL);
 
 		void processRadioMessage();
 	    void parseAndSend(char *inputString);
-	    boolean isLedMode();
-	    void ledTimersInterrupt();
-	    void startInclusionInterrupt();
-		
 	private:
 	    char convBuf[MAX_PAYLOAD*2+1];
 	    char serialBuffer[MAX_SEND_LENGTH]; // Buffer for building string when sending data to vera
 	    unsigned long inclusionStartTime;
-	    boolean inclusionMode; // Keeps track on inclusion mode
-	    boolean buttonTriggeredInclusion;
-	    volatile uint8_t countRx;
-	    volatile uint8_t countTx;
-	    volatile uint8_t countErr;
-	    boolean ledMode;
 	    boolean useWriteCallback;
 	    void (*dataCallback)(char *);
-
-
 	    uint8_t pinInclusion;
 	    uint8_t inclusionTime;
-	    uint8_t pinRx;
-	    uint8_t pinTx;
-	    uint8_t pinEr;
 
 		uint8_t h2i(char c);
 
 	    void serial(const char *fmt, ... );
 	    void serial(MyMessage &msg);
-	    void interruptStartInclusion();
 	    void checkButtonTriggeredInclusion();
 	    void setInclusionMode(boolean newMode);
 	    void checkInclusionFinished();
@@ -82,6 +65,7 @@ class MyGateway : public MySensor
 	    void errBlink(uint8_t cnt);
 };
 
-
+void ledTimersInterrupt();
+void startInclusionInterrupt();
 
 #endif
