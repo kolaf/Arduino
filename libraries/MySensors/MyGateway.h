@@ -40,14 +40,14 @@ class MyGateway : public MySensor
 		MyGateway(uint8_t _intpin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er);
 
 		/* Use this and pass a function that should be called when you want to process commands that arrive from radio network */
-		void begin(uint8_t paLevel=-14, uint16_t frequency=868, void (*dataCallback)(char *)=NULL);
+		void begin(uint8_t paLevel=14, uint16_t frequency=868, void (*dataCallback)(char *)=NULL);
 
 		void processRadioMessage();
 	    void parseAndSend(char *inputString);
 	    boolean isLedMode();
 	    void ledTimersInterrupt();
 	    void startInclusionInterrupt();
-
+		
 	private:
 	    char convBuf[MAX_PAYLOAD*2+1];
 	    char serialBuffer[MAX_SEND_LENGTH]; // Buffer for building string when sending data to vera
