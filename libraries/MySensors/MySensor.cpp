@@ -27,19 +27,15 @@ inline MyMessage& build (MyMessage &msg, uint8_t sender, uint8_t destination, ui
 }
 
 
-MySensor::MySensor(uint8_t _intpin, uint8_t _cepin, uint8_t _cspin) {
-	intpin=_intpin;
-	cspin=_cspin;
-	cepin=_cepin;
+MySensor::MySensor() {
 }
 
 
-void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, uint8_t _parentNodeId, uint8_t paLevel, uint16_t frequency) {
+void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId) {
 	Serial.begin(BAUD_RATE);
 	isGateway = false;
 	msgCallback = _msgCallback;
-
-
+	
 
 	// Read settings from EEPROM
 	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
@@ -49,7 +45,6 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 		// Eeprom empty, set default to metric
 		cc.isMetric = 0x01;
 	}
-	setupRadio(paLevel, frequency);
 	if (_nodeId != AUTO) {
 		// Set static id
 		nc.nodeId = _nodeId;
@@ -78,30 +73,21 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, u
 	waitForReply();
 }
 
-void MySensor::setupRadio(uint8_t paLevel, uint16_t frequency) {
-	failedTransmissions = 0;
-	
-	// Start up the radio library
-#ifdef DRH_RF69
-	driver=new RH_RF69(cspin,intpin);
-#elif defined DRH_RF24	
-	driver=new RH_RF24(intpin,cspin);
-#endif	
+bool MySensor::setRadio(RHGenericDriver *_driver) {
+	driver = _driver;
 	if (driver) {
 		manager=new RHMesh(*driver, nc.nodeId);
 		if (!manager->init())
 			debug(PSTR("Radio initialisation failed\n"));
+		else{
+			debug(PSTR("Radio initialisation successful\n"));
+			return true;
+		}	
 	} else {
 		debug(PSTR("No valid driver found\n"));
 	}
-///	driver.init(); Is initialised when initialising the manager..
-#ifdef DRH_RF69
-	driver->setFrequency(frequency);
-	driver->setTxPower(paLevel);
-	//driver->setModemConfig(modemChoice);
-#endif
+	return false;
 }
-
 
 uint8_t MySensor::getNodeId() {
 	return nc.nodeId;
@@ -346,7 +332,7 @@ void MySensor::sleep(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	Serial.flush();
 #ifdef DRH_RF69	
-	driver->setModeIdle();
+	// driver->setModeIdle();
 #endif
 	continueTimer = true;
 	internalSleep(ms);
@@ -357,7 +343,7 @@ bool MySensor::sleep(int interrupt, int mode, unsigned long  ms) {
 	bool pinTriggeredWakeup = true;
 	Serial.flush();
 #ifdef DRH_RF69	
-	driver->setModeIdle();
+	// driver->setModeIdle();
 #endif
 	attachInterrupt(interrupt, wakeUp, mode); //Interrupt on pin 3 for any change in solar power
 	if (ms>0) {

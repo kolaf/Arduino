@@ -97,7 +97,7 @@ class MySensor
 	* @param _cspin The pin attached to NRF24 Chip Select (default 10)
 	*/
 
-	MySensor(uint8_t _intpin=2, uint8_t _cepin=DEFAULT_CE_PIN, uint8_t _cspin=DEFAULT_CS_PIN);
+	MySensor();
 
 	/**
 	* Begin operation of the MySensors library
@@ -112,7 +112,7 @@ class MySensor
 	* @param dataRate Radio transmission speed. Default NRF24_1MBPS
 	*/
 
-	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, uint8_t parentNodeId=AUTO, uint8_t paLevel=14, uint16_t frequency=868);
+	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO);
 
 	/**
 	 * Return the nodes nodeId.
@@ -238,7 +238,7 @@ class MySensor
 	 */
 	int getInternalTemp(void);
 
-
+	bool setRadio(RHGenericDriver *_driver);
 
 #ifdef DEBUG
 	void debugPrint(const char *fmt, ... );
@@ -248,20 +248,14 @@ class MySensor
   protected:
 	NodeConfig nc; // Essential settings for node to work
 	ControllerConfig cc; // Configuration coming from controller
-#ifdef DRH_RF69
-	RH_RF69 *driver = NULL;
-#elif defined DRH_NRF24
-	RH_NRF24 *driver = NULL;
-#else
 	RHGenericDriver *driver = NULL;
-#endif
 	RHMesh *manager = NULL;
 	bool autoFindParent;
 	bool isGateway;
 	MyMessage msg;  // Buffer for incoming messages.
 	MyMessage ack;  // Buffer for ack messages.
 
-	void setupRadio(uint8_t paLevel, uint16_t frequency);
+	
 	boolean sendRoute(MyMessage &message);
 	boolean sendWrite(MyMessage &message);
 

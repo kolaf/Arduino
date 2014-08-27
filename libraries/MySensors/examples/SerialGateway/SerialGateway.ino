@@ -23,13 +23,16 @@
 
 #include <SPI.h>  
 #include <MyGateway.h>  
+#include <RH_RF69.h>
 #include <stdarg.h>
 
 #define INCLUSION_MODE_TIME 1 // Number of minutes inclusion mode is enabled
 #define INCLUSION_MODE_PIN 3 // Digital pin used for inclusion mode button
 
+RH_RF69 driver;
 
-MyGateway gw(2,DEFAULT_CE_PIN, DEFAULT_CS_PIN, INCLUSION_MODE_TIME, INCLUSION_MODE_PIN,  6, 5, 4);
+
+MyGateway gw(INCLUSION_MODE_TIME, INCLUSION_MODE_PIN,  6, 5, 4);
 
 char inputString[MAX_RECEIVE_LENGTH] = "";    // A string to hold incoming commands from serial/ethernet interface
 int inputPos = 0;
@@ -37,7 +40,11 @@ boolean commandComplete = false;  // whether the string is complete
 
 void setup()  
 { 
-  gw.begin();
+  if(gw.setRadio(&driver)) {
+    driver.setFrequency(868);
+    driver.setTxPower(14);
+    gw.begin();
+  }
 }
 
 void loop()  

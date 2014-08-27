@@ -24,7 +24,7 @@ volatile uint8_t countErr;
 boolean inclusionMode; // Keeps track on inclusion mode
 
 
-MyGateway::MyGateway(uint8_t _intpin,uint8_t _cepin, uint8_t _cspin, uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er) : MySensor(_intpin,_cepin, _cspin) {
+MyGateway::MyGateway(uint8_t _inclusion_time, uint8_t _inclusion_pin, uint8_t _rx, uint8_t _tx, uint8_t _er) : MySensor() {
 	pinInclusion = _inclusion_pin;
 	inclusionTime = _inclusion_time;
 	pinRx = _rx;
@@ -32,17 +32,17 @@ MyGateway::MyGateway(uint8_t _intpin,uint8_t _cepin, uint8_t _cspin, uint8_t _in
 	pinEr = _er;
 }
 
-void MyGateway::begin(uint8_t paLevel, uint16_t frequency, void (*inDataCallback)(char *)) {
+void MyGateway::begin(void (*inDataCallback)(char *)) {
+
 	Serial.begin(BAUD_RATE);
 	isGateway = true;
-
 	if (inDataCallback != NULL) {
 		useWriteCallback = true;
 		dataCallback = inDataCallback;
 	} else {
 		useWriteCallback = false;
 	}
-
+	
 	nc.nodeId = 0;
 	nc.distance = 0;
 	inclusionMode = 0;
@@ -68,9 +68,6 @@ void MyGateway::begin(uint8_t paLevel, uint16_t frequency, void (*inDataCallback
 	digitalWrite(pinTx, HIGH);
 	digitalWrite(pinEr, HIGH);
 
-
-	// Start up the radio library
-	setupRadio(paLevel, frequency);	
 
 	// Add led timer interrupt
     MsTimer2::set(300, ledTimersInterrupt);
@@ -179,7 +176,7 @@ void MyGateway::parseAndSend(char *commandBuffer) {
       setInclusionMode(atoi(value) == 1);
     }
   } else {
-	serial(PSTR("%d;%d;%d;%d;%d;%s\n"),destination, sensor,type, ack,  command, value);
+	// serial(PSTR("%d;%d;%d;%d;%d;%s\n"),destination, sensor,type, ack,  command, value);
     txBlink(1);
     msg.sender = GATEWAY_ADDRESS;
 	msg.destination = destination;

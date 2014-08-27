@@ -36,10 +36,10 @@ class MyGateway : public MySensor
 		* @param _er Digital pin for error led
 		*
 		*/
-		MyGateway(uint8_t _intpin=2,uint8_t _cepin=DEFAULT_CE_PIN, uint8_t _cspin=DEFAULT_CS_PIN, uint8_t _inclusion_time = 1, uint8_t _inclusion_pin = 3, uint8_t _rx=6, uint8_t _tx=5, uint8_t _er=4);
+		MyGateway(uint8_t _inclusion_time = 1, uint8_t _inclusion_pin = 3, uint8_t _rx=6, uint8_t _tx=5, uint8_t _er=4);
 
 		/* Use this and pass a function that should be called when you want to process commands that arrive from radio network */
-		void begin(uint8_t paLevel=14, uint16_t frequency=868, void (*dataCallback)(char *)=NULL);
+		void begin(void (*dataCallback)(char *)=NULL);
 
 		void processRadioMessage();
 	    void parseAndSend(char *inputString);
