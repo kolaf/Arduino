@@ -37,8 +37,6 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId) {
 	msgCallback = _msgCallback;
 	
 
-	// Read settings from EEPROM
-	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
 	// Read latest received controller configuration from EEPROM
 	eeprom_read_block((void*)&cc, (void*)EEPROM_LOCAL_CONFIG_ADDRESS, sizeof(ControllerConfig));
 	if (cc.isMetric == 0xff) {
@@ -74,6 +72,8 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId) {
 }
 
 bool MySensor::setRadio(RHGenericDriver *_driver) {
+	// Read settings from EEPROM
+	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
 	driver = _driver;
 	if (driver) {
 		manager=new RHMesh(*driver, nc.nodeId);

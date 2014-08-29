@@ -50,7 +50,7 @@ void MyGateway::begin(void (*inDataCallback)(char *)) {
 	countRx = 0;
 	countTx = 0;
 	countErr = 0;
-
+	manager->setThisAddress(nc.nodeId);
 	// Setup led pins
 	pinMode(pinRx, OUTPUT);
 	pinMode(pinTx, OUTPUT);
