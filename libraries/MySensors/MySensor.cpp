@@ -144,7 +144,7 @@ boolean MySensor::sendWrite(MyMessage &message) {
 	uint8_t length = mGetLength(message);
 	mSetVersion(message, PROTOCOL_VERSION);
 	uint8_t status = 9;
-	status = manager->sendtoWait((uint8_t*) &message, sizeof(message), message.destination);
+	status = manager->sendtoWait((uint8_t*)&message, min(MAX_MESSAGE_LENGTH, HEADER_SIZE + length), message.destination);
 	debug(PSTR("sent: %d-%d s=%d,c=%d,t=%d,pt=%d,l=%d,st=%d:%s\n"),
 			message.sender,message.destination, message.sensor, mGetCommand(message), message.type, mGetPayloadType(message), mGetLength(message), status, message.getString(convBuf));
 	if(status != RH_ROUTER_ERROR_NONE){
