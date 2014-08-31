@@ -22,6 +22,7 @@
  */
 
 #include <SPI.h>  
+#include <MySensor.h>  
 #include <MyGateway.h>  
 #include <RH_RF69.h>
 #include <stdarg.h>
