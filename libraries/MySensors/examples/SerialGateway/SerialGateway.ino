@@ -23,16 +23,28 @@
 
 #include <SPI.h>  
 #include <MyGateway.h>  
+#ifdef DRH_NRF24
+#include <RH_NRF24.h>
+#else
+#ifdef DRH_RF69
 #include <RH_RF69.h>
+#endif
+#endif
 #include <stdarg.h>
 
 #define INCLUSION_MODE_TIME 1 // Number of minutes inclusion mode is enabled
 #define INCLUSION_MODE_PIN 3 // Digital pin used for inclusion mode button
 
+#ifdef DRH_NRF24
+RH_NRF24 driver(9 /*ce*/, 10 /*csn*/);
+static uint64_t address = BASE_RADIO_ID;
+#else
+#ifdef DRH_RF69
 RH_RF69 driver;
+#endif
+#endif
 
-
-MyGateway gw(INCLUSION_MODE_TIME, INCLUSION_MODE_PIN,  6, 5, 4);
+MyGateway gw(INCLUSION_MODE_TIME, INCLUSION_MODE_PIN,  A5, A4, A3);
 
 char inputString[MAX_RECEIVE_LENGTH] = "";    // A string to hold incoming commands from serial/ethernet interface
 int inputPos = 0;
@@ -40,10 +52,27 @@ boolean commandComplete = false;  // whether the string is complete
 
 void setup()  
 { 
-  if(gw.setRadio(&driver)) {
-    driver.setFrequency(868);
-    driver.setTxPower(14);
-    gw.begin();
+  if(gw.setRadio(&driver))
+  {
+#ifdef DRH_NRF24
+    if (    driver.setChannel(RF24_CHANNEL)
+         && driver.setNetworkAddress(reinterpret_cast<uint8_t*>(&address), 5)
+         && driver.setRF(RF24_DATARATE, RF24_PA_LEVEL_GW)
+         && driver.printRegisters() )
+#else
+#ifdef DRH_RF69
+    if (    driver.setFrequency(868)
+         && driver.setTxPower(14) )
+#endif
+#endif
+    {
+      gw.begin();
+    }
+    else
+    {
+      Serial.println(F("Failed!"));
+      for (;;) {};
+    }
   }
 }
 
