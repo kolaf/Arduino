@@ -331,9 +331,7 @@ void MySensor::internalSleep(unsigned long ms) {
 void MySensor::sleep(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	Serial.flush();
-#ifdef DRH_RF69	
-	// driver->setModeIdle();
-#endif
+	driver->sleep();
 	continueTimer = true;
 	internalSleep(ms);
 }
@@ -342,9 +340,7 @@ bool MySensor::sleep(int interrupt, int mode, unsigned long  ms) {
 	// Let serial prints finish (debug, log etc)
 	bool pinTriggeredWakeup = true;
 	Serial.flush();
-#ifdef DRH_RF69	
-	// driver->setModeIdle();
-#endif
+	driver->sleep();
 	attachInterrupt(interrupt, wakeUp, mode); //Interrupt on pin 3 for any change in solar power
 	if (ms>0) {
 		continueTimer = true;
