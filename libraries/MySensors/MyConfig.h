@@ -87,6 +87,7 @@
 ***********************************/
 // Default network id. Use the same for all nodes that will talk to each other
 #define RFM69_NETWORKID     100
+//#define RFM69_NETWORKID     101
 
 // Default frequency to use. This must match the hardware version of the RFM69 radio (uncomment one):
 // #define RFM69_FREQUENCY   RF69_433MHZ

@@ -101,9 +101,9 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, b
 
 	if (isGateway) {
 		// Set configuration for gateway
-		nc.parentNodeId = 0;
+		nc.parentNodeId = GATEWAY_ADDRESS;
 		nc.distance = 0;
-		nc.nodeId = 0;
+		nc.nodeId = GATEWAY_ADDRESS;
 	} else {
 		// Read settings from eeprom
 		hw_readConfigBlock((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
