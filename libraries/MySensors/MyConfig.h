@@ -1,3 +1,23 @@
+/**
+ * The MySensors Arduino library handles the wireless radio link and protocol
+ * between your home built sensors/actuators and HA controller of choice.
+ * The sensors forms a self healing radio network with optional repeaters. Each
+ * repeater and gateway builds a routing tables in EEPROM which keeps track of the
+ * network topology allowing messages to be routed to nodes.
+ *
+ * Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
+ * Copyright (C) 2013-2015 Sensnology AB
+ * Full contributor list: https://github.com/mysensors/Arduino/graphs/contributors
+ *
+ * Documentation: http://www.mysensors.org
+ * Support Forum: http://forum.mysensors.org
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ */
+
+
 #ifndef MyConfig_h
 #define MyConfig_h
 #include <stdint.h>
@@ -23,6 +43,26 @@
 #define MY_OTA_FLASH_SS 8
 // Flash jdecid
 #define MY_OTA_FLASH_JDECID 0x1F65
+
+
+/**********************************
+*  Information LEDs blinking
+***********************************/
+// This feature enables LEDs blinking on message receive, transmit
+// or if some error occured. This was commonly used only in gateways,
+// but now can be used in any sensor node. Also the LEDs can now be
+// disabled in the gateway.
+
+// #define WITH_LEDS_BLINKING
+
+// default LEDs blinking period in milliseconds
+#define DEFAULT_LED_BLINK_PERIOD 300
+// The RX LED default pin
+#define DEFAULT_RX_LED_PIN 6
+// The TX LED default pin
+#define DEFAULT_TX_LED_PIN 5
+// The Error LED default pin
+#define DEFAULT_ERR_LED_PIN 4
 
 
 /**********************************

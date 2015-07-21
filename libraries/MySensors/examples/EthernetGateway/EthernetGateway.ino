@@ -1,13 +1,28 @@
-
-/*
- * Copyright (C) 2013 Henrik Ekblad <henrik.ekblad@gmail.com>
- * 
- * Contribution by a-lurker and Anticimex, 
- * Contribution by Norbert Truchsess <norbert.truchsess@t-online.de>
+/**
+ * The MySensors Arduino library handles the wireless radio link and protocol
+ * between your home built sensors/actuators and HA controller of choice.
+ * The sensors forms a self healing radio network with optional repeaters. Each
+ * repeater and gateway builds a routing tables in EEPROM which keeps track of the
+ * network topology allowing messages to be routed to nodes.
+ *
+ * Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
+ * Copyright (C) 2013-2015 Sensnology AB
+ * Full contributor list: https://github.com/mysensors/Arduino/graphs/contributors
+ *
+ * Documentation: http://www.mysensors.org
+ * Support Forum: http://forum.mysensors.org
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
+ *
+ *******************************
+ *
+ * REVISION HISTORY
+ * Version 1.0 - Henrik EKblad
+ * Contribution by a-lurker and Anticimex, 
+ * Contribution by Norbert Truchsess <norbert.truchsess@t-online.de>
+ *
  * 
  * DESCRIPTION
  * The EthernetGateway sends data received from sensors to the ethernet link. 
@@ -31,11 +46,12 @@
  * E.g. If you want to use the defualt values in this sketch enter: 192.168.178.66:5003
  *
  * LED purposes:
+ * - To use the feature, uncomment WITH_LEDS_BLINKING in MyConfig.h
  * - RX (green) - blink fast on radio message recieved. In inclusion mode will blink fast only on presentation recieved
  * - TX (yellow) - blink fast on radio message transmitted. In inclusion mode will blink slowly
  * - ERR (red) - fast blink on error during transmission error or recieve crc error  
  * 
-  * See http://www.mysensors.org/build/ethernet_gateway for wiring instructions.
+ * See http://www.mysensors.org/build/ethernet_gateway for wiring instructions.
  *
  */
 #define NO_PORTB_PINCHANGES 
@@ -53,7 +69,6 @@
 #include <MyParserSerial.h>  
 #include <MySensor.h>  
 #include <stdarg.h>
-#include <MsTimer2.h>
 #include <PinChangeInt.h>
 #include "GatewayUtil.h"
 
@@ -89,7 +104,12 @@ MyTransportNRF24 transport(RF24_CE_PIN, RF24_CS_PIN, RF24_PA_LEVEL_GW);
 MyHwATMega328 hw;
 
 // Construct MySensors library (signer needed if MY_SIGNING_FEATURE is turned on in MyConfig.h)
+// To use LEDs blinking, uncomment WITH_LEDS_BLINKING in MyConfig.h
+#ifdef WITH_LEDS_BLINKING
+MySensor gw(transport, hw /*, signer*/, RADIO_RX_LED_PIN, RADIO_TX_LED_PIN, RADIO_ERROR_LED_PIN);
+#else
 MySensor gw(transport, hw /*, signer*/);
+#endif
 
 
 #define IP_PORT 5003        // The port you want to open 
@@ -121,11 +141,8 @@ void output(const char *fmt, ... ) {
 void setup()  
 { 
   Ethernet.begin(mac, myIp);
-  setupGateway(RADIO_RX_LED_PIN, RADIO_TX_LED_PIN, RADIO_ERROR_LED_PIN, INCLUSION_MODE_PIN, INCLUSION_MODE_TIME, output);
 
-  // Add led timer interrupt
-  MsTimer2::set(300, ledTimersInterrupt);
-  MsTimer2::start();
+  setupGateway(INCLUSION_MODE_PIN, INCLUSION_MODE_TIME, output);
 
   // Add interrupt for inclusion button to pin
   PCintPort::attachInterrupt(pinInclusion, startInclusionInterrupt, RISING);

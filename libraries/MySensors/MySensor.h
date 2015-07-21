@@ -1,13 +1,22 @@
-/*
- The MySensors library adds a new layer on top of the RF24 library.
- It handles radio network routing, relaying and ids.
+/**
+ * The MySensors Arduino library handles the wireless radio link and protocol
+ * between your home built sensors/actuators and HA controller of choice.
+ * The sensors forms a self healing radio network with optional repeaters. Each
+ * repeater and gateway builds a routing tables in EEPROM which keeps track of the
+ * network topology allowing messages to be routed to nodes.
+ *
+ * Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
+ * Copyright (C) 2013-2015 Sensnology AB
+ * Full contributor list: https://github.com/mysensors/Arduino/graphs/contributors
+ *
+ * Documentation: http://www.mysensors.org
+ * Support Forum: http://forum.mysensors.org
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ */
 
- Created by Henrik Ekblad <henrik.ekblad@gmail.com>
-	
- This program is free software; you can redistribute it and/or
- modify it under the terms of the GNU General Public License
- version 2 as published by the Free Software Foundation.
-*/
 
 #ifndef MySensor_h
 #define MySensor_h
@@ -137,6 +146,12 @@ class MySensor
 #ifdef MY_SIGNING_FEATURE
 		, MySigning &signer=*new MySigningNone()
 #endif
+#ifdef WITH_LEDS_BLINKING
+		, uint8_t _rx=DEFAULT_RX_LED_PIN,
+		uint8_t _tx=DEFAULT_TX_LED_PIN,
+		uint8_t _er=DEFAULT_ERR_LED_PIN,
+		unsigned long _blink_period=DEFAULT_LED_BLINK_PERIOD
+#endif
 		);
 
 	/**
@@ -162,9 +177,11 @@ class MySensor
 	*
 	* @param sensorId Select a unique sensor id for this sensor. Choose a number between 0-254.
 	* @param sensorType The sensor type. See sensor typedef in MyMessage.h.
+	* @param description A textual description of the sensor.
 	* @param ack Set this to true if you want destination node to send ack back to this node. Default is not to request any ack.
+	* @param description A textual description of the sensor.
 	*/
-	void present(uint8_t sensorId, uint8_t sensorType, bool ack=false);
+	void present(uint8_t sensorId, uint8_t sensorType, const char *description="", bool ack=false);
 
 	/**
 	 * Sends sketch meta information to the gateway. Not mandatory but a nice thing to do.
@@ -290,6 +307,15 @@ class MySensor
 	 */
 	int8_t sleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, uint8_t mode2, unsigned long ms=0);
 
+#ifdef WITH_LEDS_BLINKING
+	/**
+	 * Blink with LEDs
+	 * @param cnt how many blink cycles to keep the LED on. Default cycle is 300ms
+	 */
+	void rxBlink(uint8_t cnt);
+	void txBlink(uint8_t cnt);
+	void errBlink(uint8_t cnt);
+#endif
 
   protected:
 	NodeConfig nc; // Essential settings for node to work
@@ -313,6 +339,20 @@ class MySensor
 	uint16_t doSign[16]; // Bitfield indicating which sensors require signed communication
 	MyMessage msgSign;  // Buffer for message to sign.
 	MySigning& signer;
+#endif
+
+#ifdef WITH_LEDS_BLINKING
+	uint8_t pinRx; // Rx led pin
+	uint8_t pinTx; // Tx led pin
+	uint8_t pinEr; // Err led pin
+
+	// these variables don't need to be volatile, since we are not using interrupts
+	uint8_t countRx;
+	uint8_t countTx;
+	uint8_t countErr;
+
+	unsigned long ledBlinkPeriod;
+	void handleLedsBlinking(); // do the actual blinking
 #endif
 
 	MyTransport& radio;
