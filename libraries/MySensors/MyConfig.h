@@ -4,7 +4,7 @@
 
 // Enable debug flag for debug prints. This will add a lot to the size of the final sketch but good
 // to see what is actually is happening when developing
-#define DEBUG
+//#define DEBUG
 
 // Serial output baud rate (for debug prints and serial gateway)
 #define BAUD_RATE 115200
